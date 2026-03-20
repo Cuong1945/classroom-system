@@ -1,9 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import Login from "./components/Login";
 import RoleSelect from "./components/RoleSelect";
-import AdminDashboard from "./pages/AdminDashboard";
-import TeacherDashboard from "./pages/TeacherDashboard";
-
 function App() {
 
   const [user, setUser] = useState(null);
@@ -65,7 +62,7 @@ function App() {
 
           <div className="left">
             <img src="/classroom.jpg" alt="classroom" />
-            <div className="system-title">Hệ thống quản lý lớp học</div>
+            <div className="system-title">Hệ thống quản lý lớp học EduClass</div>
           </div>
 
           <div className="right">

@@ -8,14 +8,7 @@ function Login({ loginSuccess }) {
   const [passError,setPassError] = useState("");
   const [loading,setLoading] = useState(false);
 
-  const [showRegister,setShowRegister] = useState(false);
   const [showForgot,setShowForgot] = useState(false);
-
-  const [user,setUser] = useState("");
-  const [email,setEmail] = useState("");
-  const [pass,setPass] = useState("");
-  const [errors,setErrors] = useState({});
-  const [regLoading,setRegLoading] = useState(false);
 
   const [step,setStep] = useState(1);
   const [fpEmail,setFpEmail] = useState("");
@@ -23,126 +16,67 @@ function Login({ loginSuccess }) {
   const [fpError,setFpError] = useState("");
   const otpInputs = useRef([]);
 
-async function handleLogin(e){
-  e.preventDefault();
+  async function handleLogin(e){
+    e.preventDefault();
+    setPassError("");
 
-  if(!username || !password){
-    setPassError("Vui lòng nhập đầy đủ");
-    return;
-  }
-
-  setLoading(true);
-
-  try{
-
-    if(username==="admin" && password==="123456"){
-
-      const userData = {username:"admin",role:"admin",name:"Admin"};
-
-      if(rememberMe){
-        localStorage.setItem("user",JSON.stringify(userData));
-      }
-
-      loginSuccess(userData);
+    if(!username || !password){
+      setPassError("Vui lòng nhập đầy đủ");
       return;
     }
 
-    if(username==="teacher" && password==="123456"){
-
-      const userData = {username:"teacher",role:"teacher",name:"Nguyen Van A"};
-
-      if(rememberMe){
-        localStorage.setItem("user",JSON.stringify(userData));
-      }
-
-      loginSuccess(userData);
-      return;
-    }
-
-    const res = await fetch("http://localhost:5000/api/login",{
-      method:"POST",
-      headers:{ "Content-Type":"application/json"},
-      body:JSON.stringify({username,password})
-    });
-
-    const data = await res.json();
-
-    if(data.success){
-
-      if(rememberMe){
-        localStorage.setItem("user",JSON.stringify(data.user));
-      }
-
-      loginSuccess(data.user);
-
-    }else{
-      setPassError(data.message);
-    }
-
-  }catch{
-    setPassError("Không kết nối được server");
-  }
-
-  setLoading(false);
-}
-
-  async function register(){
-
-    let newErrors = {};
-    let valid = true;
-
-    if(!user){ newErrors.user="Không được bỏ trống"; valid=false;}
-    if(!email){ newErrors.email="Không được bỏ trống"; valid=false;}
-    if(pass.length<6){ newErrors.pass="Mật khẩu ≥ 6 ký tự"; valid=false;}
-
-    setErrors(newErrors);
-    if(!valid) return;
-
-    setRegLoading(true);
+    setLoading(true);
 
     try{
+      let userData = null;
 
-      const res = await fetch("http://localhost:5000/api/register",{
-        method:"POST",
-        headers:{ "Content-Type":"application/json"},
-        body:JSON.stringify({
-          username:user,
-          email:email,
-          password:pass,
-          role:"teacher"
-        })
-      });
+      if(username==="admin" && password==="123456"){
+        userData = {username:"admin",role:"admin",name:"Admin"};
+      }
+      else if(username==="teacher" && password==="123456"){
+        userData = {username:"teacher",role:"teacher",name:"Nguyen Van A"};
+      }
+      else{
+        const res = await fetch("http://localhost:5000/api/login",{
+          method:"POST",
+          headers:{ "Content-Type":"application/json"},
+          body:JSON.stringify({username,password})
+        });
 
-      const data = await res.json();
+        const data = await res.json();
 
-      if(data.success){
-        alert("Đăng ký thành công");
-        setShowRegister(false);
-      }else{
-        setErrors({server:data.message});
+        if(data.success){
+          userData = data.user;
+        }else{
+          setPassError(data.message);
+          return;
+        }
       }
 
-    }catch{
-      setErrors({server:"Không kết nối được server"});
-    }
+      if(rememberMe){
+        localStorage.setItem("user",JSON.stringify(userData));
+      }
 
-    setRegLoading(false);
+      loginSuccess(userData);
+
+    }catch{
+      setPassError("Không kết nối được server");
+    }finally{
+      setLoading(false);
+    }
   }
 
   function handleSendOTP(){
-
-    if(!fpEmail.includes("@")){
+    if(!/^\S+@\S+\.\S+$/.test(fpEmail)){
       setFpError("Email không hợp lệ");
       return;
     }
-
     setFpError("");
     setStep(2);
   }
 
   function handleVerifyOTP(){
-
-    const otp = otpInputs.current.map(i=>i.value).join("");
+    const otp = otpInputs.current.map(i=>i?.value || "").join("");
 
     if(otp!=="123456"){
       setFpError("OTP sai");
@@ -154,7 +88,6 @@ async function handleLogin(e){
   }
 
   function handleFinish(){
-
     if(newPass.length<6){
       setFpError("Mật khẩu ≥ 6 ký tự");
       return;
@@ -163,10 +96,11 @@ async function handleLogin(e){
     alert("Đổi mật khẩu thành công");
     setShowForgot(false);
     setStep(1);
+    setFpEmail("");
+    setNewPass("");
   }
 
   return (
-
 <>
 <style>{`
 
@@ -316,10 +250,11 @@ opacity:1;
 
 `}</style>
 
+<div className="form-container">
+
 <form onSubmit={handleLogin}>
 
-<h2 className="login-title">Đăng Nhập</h2>
-<p className="login-desc">Hệ thống quản lý lớp học Khổng Tử Nhí</p>
+<h2>Đăng Nhập</h2>
 
 <div className="input-group">
 <label>Tài khoản</label>
@@ -341,16 +276,16 @@ onChange={(e)=>setPassword(e.target.value)}
 
 <div className="login-utils">
 
-<label className="remember-me">
+<label>
 <input
 type="checkbox"
 checked={rememberMe}
 onChange={(e)=>setRememberMe(e.target.checked)}
 />
-<span>Ghi nhớ</span>
+ Ghi nhớ
 </label>
 
-<span className="forgot-link" onClick={()=>setShowForgot(true)}>
+<span style={{cursor:"pointer",color:"#c62828"}} onClick={()=>setShowForgot(true)}>
 Quên mật khẩu?
 </span>
 
@@ -362,58 +297,11 @@ Quên mật khẩu?
 {loading ? "Đang đăng nhập..." : "Đăng nhập"}
 </button>
 
-<button type="button" onClick={()=>setShowRegister(true)}>
-Đăng ký
-</button>
-
 </form>
-
-{/* REGISTER */}
-
-{showRegister && (
-
-<div className="modal">
-<div className="modal-content">
-
-<h3>Đăng ký</h3>
-
-{errors.server && <div className="error">{errors.server}</div>}
-
-<div className="input-group">
-<label>Tài khoản</label>
-<input value={user} onChange={(e)=>setUser(e.target.value)}/>
-<div className="error">{errors.user}</div>
 </div>
-
-<div className="input-group">
-<label>Email</label>
-<input value={email} onChange={(e)=>setEmail(e.target.value)}/>
-<div className="error">{errors.email}</div>
-</div>
-
-<div className="input-group">
-<label>Mật khẩu</label>
-<input type="password" value={pass} onChange={(e)=>setPass(e.target.value)}/>
-<div className="error">{errors.pass}</div>
-</div>
-
-<button onClick={register}>
-{regLoading ? "Đang xử lý..." : "Đăng ký"}
-</button>
-
-<button className="close-btn" onClick={()=>setShowRegister(false)}>
-Hủy
-</button>
-
-</div>
-</div>
-
-)}
 
 {/* FORGOT PASSWORD */}
-
 {showForgot && (
-
 <div className="modal">
 <div className="modal-content">
 
@@ -422,7 +310,6 @@ Hủy
 <h3>Khôi phục mật khẩu</h3>
 
 <input
-className="fp-input"
 placeholder="email@gmail.com"
 value={fpEmail}
 onChange={(e)=>setFpEmail(e.target.value)}
@@ -440,7 +327,16 @@ onChange={(e)=>setFpEmail(e.target.value)}
 
 <div className="otp">
 {[0,1,2,3,4,5].map(i=>(
-<input key={i} maxLength="1" ref={el=>otpInputs.current[i]=el}/>
+<input
+key={i}
+maxLength="1"
+ref={el=>otpInputs.current[i]=el}
+onChange={(e)=>{
+  if(e.target.value && i<5){
+    otpInputs.current[i+1].focus();
+  }
+}}
+/>
 ))}
 </div>
 
@@ -455,7 +351,6 @@ onChange={(e)=>setFpEmail(e.target.value)}
 <h3>Mật khẩu mới</h3>
 
 <input
-className="fp-input"
 type="password"
 placeholder="Tối thiểu 6 ký tự"
 value={newPass}
@@ -474,7 +369,6 @@ Hủy
 
 </div>
 </div>
-
 )}
 
 </>
